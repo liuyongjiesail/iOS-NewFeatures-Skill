@@ -1,0 +1,76 @@
+# ===========================
+# macOS
+# ===========================
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# ===========================
+# Xcode
+# ===========================
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcworkspace/xcshareddata/IDEWorkspaceChecks.plist
+build/
+DerivedData/
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+timeline.xctimeline
+playground.xcworkspace
+
+# ===========================
+# Swift Package Manager
+# ===========================
+.build/
+.swiftpm/
+*.resolved
+
+# ===========================
+# CocoaPods
+# ===========================
+Pods/
+*.xcworkspace
+
+# ===========================
+# Carthage
+# ===========================
+Carthage/Build/
+
+# ===========================
+# AI / Cursor
+# ===========================
+.cursor/cache/
+.cursor/logs/
+.cursor/tmp/
+
+# ===========================
+# Environment & Secrets
+# ===========================
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+Secrets.swift
+APIKeys.swift
+
+# ===========================
+# Logs & Temp
+# ===========================
+*.log
+*.tmp
+operateLog.md
