@@ -1,0 +1,13 @@
+{
+  "name": "ios-new-features",
+  "version": "1.0.0",
+  "description": "Reference for Swift and SwiftUI new features introduced after the AI training cutoff. Covers iOS 18+ APIs including AlarmKit, App Intents domains, SpeechAnalyzer, and more.",
+  "author": {
+    "name": "liuyongjie",
+    "email": "liuyongjiesail@gmail.com"
+  },
+  "repository": "https://github.com/liuyongjie/iOS-NewFeatures-Skill",
+  "license": "MIT",
+  "keywords": ["ios", "swift", "swiftui", "ios26", "alarmkit", "appintents", "speechanalyzer"],
+  "skills": "./skills/"
+}
