@@ -11,13 +11,20 @@ AI 训练数据存在截止日期，对于 iOS 18 之后引入的新 API（如 A
 ## 项目结构
 
 ```
-ios-new-features/
-├── SKILL.md               # Skill 入口，包含功能索引和触发条件
-└── reference/
-    └── alarmkit.md        # AlarmKit 参考文档（iOS 26+）
-    └── ...                # 未来新增的功能文档
-operateLog.md              # 操作日志
-AGENTS.md                  # 本文件
+.claude-plugin/
+└── plugin.json              # Claude Code 插件清单
+.cursor/
+└── skills/
+    └── ios-new-features     # 符号链接 → ../../skills/ios-new-features
+skills/
+└── ios-new-features/        # 唯一文件源，Cursor 和 Claude Code 共用
+    ├── SKILL.md
+    └── reference/
+        ├── alarmkit.md
+        ├── app-intents.md
+        ├── speech-analyzer.md
+        └── vision.md
+AGENTS.md                    # 本文件
 ```
 
 ---
@@ -26,8 +33,8 @@ AGENTS.md                  # 本文件
 
 ### 新增功能文档
 
-1. 在 `ios-new-features/reference/` 下创建新的 `.md` 文件
-2. 在 `ios-new-features/SKILL.md` 的 Feature Index 表格中添加对应条目
+1. 在 `skills/ios-new-features/reference/` 下创建新的 `.md` 文件
+2. 在 `skills/ios-new-features/SKILL.md` 的 Feature Index 表格中添加对应条目
 3. 文件命名使用小写 + 连字符，如 `foundation-models.md`
 
 ### 参考文档格式
