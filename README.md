@@ -11,7 +11,7 @@
 在 Claude Code 中执行：
 
 ```
-/plugin marketplace add liuyongjie/iOS-NewFeatures-Skill
+/plugin marketplace add liuyongjiesail/iOS-NewFeatures-Skill
 /plugin install ios-new-features@iOS-NewFeatures-Skill
 ```
 
@@ -22,13 +22,13 @@
 需要 [GitHub CLI](https://cli.github.com/) v2.90.0+：
 
 ```bash
-gh skill install github/liuyongjie/iOS-NewFeatures-Skill ios-new-features
+gh skill install github/liuyongjiesail/iOS-NewFeatures-Skill ios-new-features
 ```
 
 ### 手动安装（通用）
 
 ```bash
-git clone https://github.com/liuyongjie/iOS-NewFeatures-Skill
+git clone https://github.com/liuyongjiesail/iOS-NewFeatures-Skill
 ```
 
 - **Claude Code**：将 `skills/` 目录复制到项目的 `.claude/skills/`

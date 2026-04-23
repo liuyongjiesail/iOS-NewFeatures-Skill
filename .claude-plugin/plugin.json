@@ -6,7 +6,7 @@
     "name": "liuyongjie",
     "email": "liuyongjiesail@gmail.com"
   },
-  "repository": "https://github.com/liuyongjie/iOS-NewFeatures-Skill",
+  "repository": "https://github.com/liuyongjiesail/iOS-NewFeatures-Skill",
   "license": "MIT",
   "keywords": ["ios", "swift", "swiftui", "ios26", "alarmkit", "appintents", "speechanalyzer"],
   "skills": "./skills/"
