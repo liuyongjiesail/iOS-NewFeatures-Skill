@@ -1,0 +1,15 @@
+{
+  "name": "iOS-NewFeatures-Skill",
+  "owner": {
+    "name": "liuyongjiesail",
+    "email": "liuyongjiesail@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "ios-new-features",
+      "source": "https://github.com/liuyongjiesail/iOS-NewFeatures-Skill",
+      "description": "Reference for Swift and SwiftUI new features introduced after the AI training cutoff. Covers iOS 18+ APIs including AlarmKit, App Intents, SpeechAnalyzer, Vision Framework, and more.",
+      "version": "1.0.0"
+    }
+  ]
+}
