@@ -60,7 +60,7 @@ mkdir -p "$DEFAULT_DIR"
 
 # Copy skill files
 echo -e "${BLUE}Copying skill files...${NC}"
-cp -r "$(dirname "$0")/ios-new-features" "$SKILL_DIR"
+cp -r "$(dirname "$0")/skills/ios-new-features" "$SKILL_DIR"
 
 # Verify installation
 if [ -f "$SKILL_DIR/SKILL.md" ]; then

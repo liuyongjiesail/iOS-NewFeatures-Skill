@@ -55,7 +55,7 @@ async function install() {
 
   const skillsDir = getClaudeSkillsDir();
   const targetDir = path.join(skillsDir, 'ios-new-features');
-  const sourceDir = path.join(__dirname, '..', 'ios-new-features');
+  const sourceDir = path.join(__dirname, '..', 'skills', 'ios-new-features');
 
   log(`📁 Target directory: ${targetDir}`, 'blue');
 

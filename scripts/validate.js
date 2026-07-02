@@ -20,8 +20,8 @@ function log(message, color = 'reset') {
   console.log(`${colors[color]}${message}${colors.reset}`);
 }
 
-const referenceDir = path.join(__dirname, '..', 'ios-new-features', 'reference');
-const skillFile = path.join(__dirname, '..', 'ios-new-features', 'SKILL.md');
+const referenceDir = path.join(__dirname, '..', 'skills', 'ios-new-features', 'reference');
+const skillFile = path.join(__dirname, '..', 'skills', 'ios-new-features', 'SKILL.md');
 
 let errors = 0;
 let warnings = 0;
