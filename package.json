@@ -1,0 +1,75 @@
+{
+  "name": "@claude-code/ios-new-features-skill",
+  "version": "1.0.0",
+  "description": "AI reference knowledge base for iOS/Swift/SwiftUI new features introduced after AI training cutoff",
+  "main": "ios-new-features/SKILL.md",
+  "keywords": [
+    "claude-code",
+    "skill",
+    "ios",
+    "swift",
+    "swiftui",
+    "wwdc",
+    "apple",
+    "ai-assistant",
+    "reference",
+    "documentation"
+  ],
+  "author": "liuyongjie",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/liuyongjie/iOS-NewFeatures-Skill.git"
+  },
+  "bugs": {
+    "url": "https://github.com/liuyongjie/iOS-NewFeatures-Skill/issues"
+  },
+  "homepage": "https://github.com/liuyongjie/iOS-NewFeatures-Skill#readme",
+  "claudeCode": {
+    "type": "skill",
+    "version": "1.0",
+    "skillPath": "ios-new-features",
+    "supportedPlatforms": ["macos", "linux", "windows"],
+    "minClaudeCodeVersion": "1.0.0",
+    "features": [
+      "AlarmKit",
+      "App Intents",
+      "Foundation Models",
+      "SF Symbols 6/7",
+      "Spatial Computing",
+      "Swift 6 Concurrency",
+      "SwiftUI Advanced Effects",
+      "And 20+ more iOS features"
+    ],
+    "triggers": [
+      "iOS 18+",
+      "iOS 26+",
+      "WWDC 2023-2025",
+      "AlarmKit",
+      "App Intent Domains",
+      "Foundation Models",
+      "SF Symbols",
+      "Swift 6",
+      "visionOS"
+    ]
+  },
+  "files": [
+    "ios-new-features/SKILL.md",
+    "ios-new-features/reference/**/*.md",
+    "examples/**/*.swift",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "install": "node scripts/install.js",
+    "uninstall": "node scripts/uninstall.js",
+    "validate": "node scripts/validate.js",
+    "test": "node scripts/test.js"
+  },
+  "devDependencies": {
+    "markdownlint-cli": "^0.37.0"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

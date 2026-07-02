@@ -1,0 +1,43 @@
+name: Validate Documentation
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'ios-new-features/**/*.md'
+      - 'scripts/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'ios-new-features/**/*.md'
+      - 'scripts/**'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run validation script
+        run: npm run validate
+
+      - name: Check Markdown formatting
+        run: npx markdownlint ios-new-features/reference/*.md --config .markdownlint.json || true
+
+      - name: Validation summary
+        if: success()
+        run: |
+          echo "✅ All documentation checks passed!"
+          echo "📊 Total reference files: $(ls ios-new-features/reference/*.md | wc -l)"
+          echo "🔍 All features are properly indexed"

@@ -1,0 +1,129 @@
+# Claude Code Skill Metadata
+# This file enables automatic discovery in the Claude Code plugin marketplace
+
+skill:
+  name: ios-new-features
+  displayName: iOS New Features Reference
+  version: 1.0.0
+  description: |
+    Comprehensive reference for iOS, Swift, and SwiftUI features introduced after AI training cutoff.
+    Covers iOS 16-27, WWDC 2023-2025 sessions, with 27+ feature documentations.
+
+  author:
+    name: liuyongjie
+    url: https://github.com/liuyongjie
+
+  repository:
+    type: git
+    url: https://github.com/liuyongjie/iOS-NewFeatures-Skill
+
+  license: MIT
+
+  category: development
+  tags:
+    - ios
+    - swift
+    - swiftui
+    - apple
+    - wwdc
+    - mobile
+    - reference
+    - documentation
+
+  compatibility:
+    minClaudeCodeVersion: 1.0.0
+    platforms:
+      - macos
+      - linux
+      - windows
+
+  install:
+    type: copy
+    source: ios-new-features
+    destination: skills/ios-new-features
+
+  features:
+    - name: AlarmKit
+      version: iOS 26+
+      description: Countdown alarms with silent mode override
+
+    - name: App Intents
+      version: iOS 18+
+      description: App Intent Domains, Control widgets, Camera intents
+
+    - name: Foundation Models
+      version: iOS 27+
+      description: Native AI model APIs with streaming responses
+
+    - name: SF Symbols 6 & 7
+      version: iOS 18+
+      description: Draw animations, Wiggle/Rotate/Breathe, Gradients
+
+    - name: Spatial Computing
+      version: visionOS 2.0+
+      description: ARKit 6, RealityKit 4, spatial audio
+
+    - name: Swift 6 Concurrency
+      version: Swift 6.0
+      description: Complete data isolation, Sendable checking
+
+    - name: And 21 more features
+      description: See full list in documentation
+
+  triggers:
+    keywords:
+      - AlarmKit
+      - App Intent Domains
+      - Foundation Models
+      - SF Symbols
+      - Draw animation
+      - Wiggle
+      - Rotate
+      - Breathe
+      - Variable Draw
+      - Swift 6
+      - data isolation
+      - Sendable
+      - visionOS
+      - spatial computing
+      - WWDC 2023
+      - WWDC 2024
+      - WWDC 2025
+      - iOS 18
+      - iOS 19
+      - iOS 26
+      - iOS 27
+
+    patterns:
+      - "iOS \\d{2}\\+"
+      - "WWDC \\d{4}"
+      - "Session \\d{3,5}"
+
+  documentation:
+    readme: README.md
+    quickstart: |
+      This skill automatically activates when you mention:
+      - iOS 18+ features
+      - Specific WWDC sessions
+      - New APIs like AlarmKit, Foundation Models, etc.
+
+      Example queries:
+      - "How to use AlarmKit in iOS 26?"
+      - "Show me SF Symbols 7 Draw animation"
+      - "What's new in Swift 6 concurrency?"
+
+    homepage: https://github.com/liuyongjie/iOS-NewFeatures-Skill
+    issues: https://github.com/liuyongjie/iOS-NewFeatures-Skill/issues
+    changelog: https://github.com/liuyongjie/iOS-NewFeatures-Skill/blob/main/CHANGELOG.md
+
+  screenshots:
+    - url: https://example.com/screenshot1.png
+      caption: AlarmKit reference with code examples
+    - url: https://example.com/screenshot2.png
+      caption: SF Symbols 7 animation guide
+
+  stats:
+    features: 27
+    codeExamples: 100+
+    wwdcSessions: 15+
+    platforms: 3

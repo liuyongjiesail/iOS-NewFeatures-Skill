@@ -74,3 +74,4 @@ APIKeys.swift
 *.log
 *.tmp
 operateLog.md
+node_modules/
