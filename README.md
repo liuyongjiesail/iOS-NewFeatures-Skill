@@ -6,18 +6,34 @@
 
 ## 安装
 
-### Claude Code
+### 方式 1：Claude Code 插件市场（推荐）
 
-在 Claude Code 中执行：
-
+**自动安装**（如果已在市场上架）：
+```bash
+/skills install ios-new-features
 ```
+
+**或手动添加仓库**：
+```bash
 /plugin marketplace add liuyongjiesail/iOS-NewFeatures-Skill
 /plugin install ios-new-features@iOS-NewFeatures-Skill
 ```
 
 安装后，遇到 iOS 18+ / iOS 26+ 相关 API 时会自动加载参考文档。
 
-### Cursor（GitHub CLI）
+### 方式 2：一键安装脚本
+
+```bash
+# macOS / Linux
+curl -fsSL https://raw.githubusercontent.com/liuyongjiesail/iOS-NewFeatures-Skill/main/install.sh | bash
+
+# 或下载后执行
+wget https://raw.githubusercontent.com/liuyongjiesail/iOS-NewFeatures-Skill/main/install.sh
+chmod +x install.sh
+./install.sh
+```
+
+### 方式 3：Cursor（GitHub CLI）
 
 需要 [GitHub CLI](https://cli.github.com/) v2.90.0+：
 
@@ -25,7 +41,7 @@
 gh skill install github/liuyongjiesail/iOS-NewFeatures-Skill ios-new-features
 ```
 
-### 手动安装（通用）
+### 方式 4：手动安装（通用）
 
 ```bash
 git clone https://github.com/liuyongjiesail/iOS-NewFeatures-Skill

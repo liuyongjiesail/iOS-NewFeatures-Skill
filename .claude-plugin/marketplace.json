@@ -7,12 +7,13 @@
     "email": "liuyongjiesail@gmail.com"
   },
   "metadata": {
-    "description": "Reference for Swift and SwiftUI new features introduced after the AI training cutoff. Covers iOS 18+ APIs including AlarmKit, App Intents, SpeechAnalyzer, Vision Framework, and more."
+    "description": "Comprehensive reference for iOS, Swift, and SwiftUI features introduced after AI training cutoff. Covers 27+ features including SF Symbols 6/7, Foundation Models, Spatial Computing, Swift 6 Concurrency, and more. Based on WWDC 2023-2025 sessions with 200+ code examples."
   },
   "plugins": [
     {
       "name": "ios-new-features",
-      "description": "Reference for Swift and SwiftUI new features introduced after the AI training cutoff. Covers iOS 18+ APIs including AlarmKit, App Intents, SpeechAnalyzer, Vision Framework, and more.",
+      "displayName": "iOS New Features Reference",
+      "description": "27+ iOS/macOS/watchOS feature references covering iOS 16-27, with auto-triggered keywords and runnable Swift code examples",
       "repository": "https://github.com/liuyongjiesail/iOS-NewFeatures-Skill",
       "version": "1.0.0",
       "author": {
@@ -21,9 +22,56 @@
       },
       "license": "MIT",
       "category": "development",
-      "keywords": ["ios", "swift", "swiftui", "ios26", "alarmkit", "appintents", "speechanalyzer"],
-      "tags": ["ios", "swift", "swiftui", "ios26", "alarmkit", "appintents", "speechanalyzer"],
-      "source": "./"
+      "keywords": [
+        "ios",
+        "swift",
+        "swiftui",
+        "ios18",
+        "ios19",
+        "ios26",
+        "ios27",
+        "wwdc",
+        "wwdc2024",
+        "wwdc2025",
+        "alarmkit",
+        "app-intents",
+        "foundation-models",
+        "sf-symbols",
+        "spatial-computing",
+        "swift6",
+        "concurrency",
+        "visionos",
+        "healthkit",
+        "camera",
+        "vision",
+        "apple"
+      ],
+      "tags": [
+        "ios",
+        "swift",
+        "swiftui",
+        "apple",
+        "mobile",
+        "wwdc",
+        "reference",
+        "documentation"
+      ],
+      "source": "./",
+      "features": [
+        "27+ iOS/macOS/watchOS features",
+        "SF Symbols 6 & 7 (Draw, Wiggle, Rotate, Breathe)",
+        "Foundation Models (iOS 27 AI APIs)",
+        "Spatial Computing (visionOS 2.0)",
+        "Swift 6 Concurrency",
+        "AlarmKit, HealthKit Workout Zones",
+        "Camera APIs (Zero Shutter Lag, ProRAW Max)",
+        "Music Understanding, NowPlaying",
+        "Auto-triggered by keywords",
+        "200+ runnable code examples"
+      ],
+      "homepage": "https://github.com/liuyongjiesail/iOS-NewFeatures-Skill#readme",
+      "bugs": "https://github.com/liuyongjiesail/iOS-NewFeatures-Skill/issues",
+      "changelog": "https://github.com/liuyongjiesail/iOS-NewFeatures-Skill/blob/main/CHANGELOG.md"
     }
   ]
 }
