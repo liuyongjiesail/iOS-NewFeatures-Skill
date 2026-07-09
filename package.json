@@ -56,12 +56,14 @@
   "files": [
     "ios-new-features/SKILL.md",
     "ios-new-features/reference/**/*.md",
+    "codex/AGENTS.md",
     "examples/**/*.swift",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
     "install": "node scripts/install.js",
+    "install:codex": "node scripts/install-codex.js",
     "uninstall": "node scripts/uninstall.js",
     "validate": "node scripts/validate.js",
     "test": "node scripts/test.js"

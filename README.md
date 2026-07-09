@@ -41,7 +41,26 @@ chmod +x install.sh
 gh skill install github/liuyongjiesail/iOS-NewFeatures-Skill ios-new-features
 ```
 
-### 方式 4：手动安装（通用）
+### 方式 4：Codex（OpenAI CLI）
+
+Codex 没有关键词自动触发机制，靠读取 `AGENTS.md` 获取指令。安装脚本会把参考文档复制到 `~/.codex/skills/ios-new-features/`，并向全局 `~/.codex/AGENTS.md` 注入一段指令（幂等，可重复运行）：
+
+```bash
+# 一键安装（本地已 clone）
+./install-codex.sh
+
+# 或通过 npm 脚本
+npm run install:codex
+
+# 或远程一键安装
+curl -fsSL https://raw.githubusercontent.com/liuyongjiesail/iOS-NewFeatures-Skill/main/install-codex.sh | bash
+```
+
+安装后，当你向 Codex 询问 iOS 18+ / iOS 26+ API 或命中触发关键词时，它会先读取对应的参考文档再写代码。
+
+也可**手动**使用：把仓库里的 `codex/AGENTS.md` 与 `skills/ios-new-features/reference/` 放进你的项目，Codex 会读取项目内的 `AGENTS.md`。
+
+### 方式 5：手动安装（通用）
 
 ```bash
 git clone https://github.com/liuyongjiesail/iOS-NewFeatures-Skill
@@ -76,13 +95,17 @@ AI 的训练数据存在截止日期。对于 iOS 18 之后引入的新 API（�
 └── plugin.json                        # Claude Code 插件清单
 .cursor/skills/ios-new-features/
 └── SKILL.md                           # Cursor skill 入口
-skills/ios-new-features/               # 唯一文件源（Claude Code + Cursor 共用 reference）
+codex/
+└── AGENTS.md                          # Codex 入口（含 Feature Index + 引用规则）
+skills/ios-new-features/               # 唯一文件源（Claude Code + Cursor + Codex 共用 reference）
     ├── SKILL.md                       # Claude Code skill 入口
     └── reference/
         ├── alarmkit.md
         ├── app-intents.md
         ├── speech-analyzer.md
         └── vision.md
+install-codex.sh                       # Codex 一键安装（bash）
+scripts/install-codex.js               # Codex 一键安装（node）
 ```
 
 ---
