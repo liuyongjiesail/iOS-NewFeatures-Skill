@@ -22,6 +22,7 @@ keywords, a specific WWDC session, or targets iOS 18 and newer.
 | Generative Captions | iOS 27+ | [reference/generative-captions.md](reference/generative-captions.md) | GenerativeCaptions, AI captions, image description, accessibility |
 | HealthKit Workout Zones | iOS 27+ | [reference/healthkit-workout-zones.md](reference/healthkit-workout-zones.md) | HealthKit, workout zones, heart rate zones, training zones, HKWorkoutZone |
 | High Resolution Photo Capture | iOS 16+ | [reference/high-resolution-photo-capture.md](reference/high-resolution-photo-capture.md) | ProRAW Max, 48MP photos, high resolution capture, AVCapturePhotoOutput |
+| MusicKit Integration | iOS 26+ | [reference/musickit.md](reference/musickit.md) | MusicKit, Apple Music, MusicAuthorization, musicPicker, musicSubscriptionOffer, MusicSubscription, ApplicationMusicPlayer, SystemMusicPlayer, ArtworkImage, MusicCatalogResourceRequest, MusicItem, Song, Album, Playlist, queue, playback |
 | Music Understanding | iOS 27+ | [reference/music-understanding.md](reference/music-understanding.md) | Music Understanding, audio analysis, beat detection, chord recognition, MusicKit |
 | NowPlaying | iOS 27+ | [reference/nowplaying.md](reference/nowplaying.md) | NowPlaying, MediaSession, lock screen controls, SharePlay, remote playback |
 | SF Symbols | iOS 18+ / iOS 19+ | [reference/sf-symbols.md](reference/sf-symbols.md) | SF Symbols, Wiggle, Rotate, Breathe, Draw, Draw On, Draw Off, Variable Draw, Magic Replace, Gradient, symbolEffect, symbol animation |

@@ -117,7 +117,7 @@ extension PlayerModel: MediaSessionRepresentable {
             title: sound.name,
             subtitle: sound.description,
             type: .audio,                    // .audio 或 .video
-            duration: .continuous,           // .continuous 或 .seconds(120)
+            duration: .live,                 // .live（无固定时长/直播/环境音）或 .seconds(120)
             artwork: Artwork(id: sound.id) { size in
                 let data = try await self.artworkData(size: size)
                 return try ArtworkRepresentation(data: data)
@@ -262,7 +262,7 @@ MediaPlaybackSnapshot(state: .paused)
 // 停止
 MediaPlaybackSnapshot(state: .stopped)
 
-// 连续播放（无固定时长，如直播流）
+// 连续播放（无固定时长，如直播流/环境音，content.duration 设为 .live）
 MediaPlaybackSnapshot(
     state: .playing()  // 不传 elapsedTime
 )
@@ -413,7 +413,7 @@ extension RemotePlayerModel: @MainActor RemoteMediaSessionRepresentable {
             title: state.sound.name,
             subtitle: state.sound.description,
             type: .audio,
-            duration: .continuous,
+            duration: .live,
             artwork: Artwork(id: state.sound.id) { size in
                 let data = try await self.artworkData(size: size)
                 return try ArtworkRepresentation(data: data)
@@ -650,7 +650,7 @@ extension PlayerModel: MediaSessionRepresentable {
             title: sound.name,
             subtitle: sound.description,
             type: .audio,
-            duration: .continuous,
+            duration: .live,
             artwork: Artwork(id: sound.id) { size in
                 let data = try await self.artworkData(size: size)
                 return try ArtworkRepresentation(data: data)
