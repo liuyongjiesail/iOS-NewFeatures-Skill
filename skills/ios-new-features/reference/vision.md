@@ -859,7 +859,7 @@ let correctionTransform = obs.transform(for: imageSize)
 
 ### CoreMLRequest
 
-将自定义 Core ML 模型嵌入 Vision 管线，自动处理图像预处理和坐标转换。
+将自定义 Core ML 模型嵌入 Vision 管线，自动处理图像预处理和坐标转换。模型加载、状态和张量见 [coreml.md](coreml.md)。
 
 **返回：** `[CoreMLFeatureValueObservation]` 或 `[RecognizedObjectObservation]`（取决于模型输出类型）
 

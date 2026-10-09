@@ -67,6 +67,8 @@ if request.assetStatus == .notReady {
 
 ## Foundation Models 图像输入
 
+通用会话、结构化输出和工具协议见 [foundation-models.md](foundation-models.md)。这里只写图像附件。
+
 ```swift
 import FoundationModels
 
