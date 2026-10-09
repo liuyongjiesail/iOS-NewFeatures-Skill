@@ -26,7 +26,7 @@
 13. [光流 & 图像配准](#光流--图像配准)
 14. [动物 & 场景](#动物--场景)
 15. [Core ML 集成](#core-ml-集成)
-16. [坐标系工具](#坐标系工具)
+16. [坐标系、协议与可下载资源](#坐标系协议与可下载资源)
 17. [Swift Concurrency 优化](#swift-concurrency-优化)
 18. [从旧 API 迁移](#从旧-api-迁移)
 19. [性能建议](#性能建议)
@@ -82,7 +82,7 @@ for barcode in barcodes {
 }
 ```
 
-**代码行数对比：** 10 行 → 5 行（减少 50%）
+**代码行数对比：** 会话中的条码示例从 10 行减到 6 行。旧 API 没有停用；新功能之后只加在 Swift API 上。
 
 ---
 
@@ -99,30 +99,74 @@ ImageRequestHandler(url: URL)
 ImageRequestHandler(data: Data)
 ```
 
-**执行方式：**
+Vision 提供 31 种请求，每种对应一种图像分析。单个请求直接 `perform(on:)`，不必建 handler：
 
 ```swift
-// 单个请求
-let observations = try await handler.perform(request)
+let request = DetectBarcodesRequest()
+let barcodes = try await request.perform(on: image)
+```
 
-// 多个请求同时执行（参数包语法）
-let (r1, r2) = try await handler.perform(request1, request2)
+同一张图上要问多个问题时，用 `ImageRequestHandler` 当图像容器，并一次提交。`perform` 的参数包要等**全部**请求结束才返回。`performAll` 按完成顺序把结果流出来：杂货店示例里条码一出来就可以用，不必等 `RecognizeTextRequest`。
 
-// 流式执行，结果完成一个推一个
-for try await result in handler.performAll(request1, request2) {
+```swift
+let handler = ImageRequestHandler(image)
+let (barcodes, texts) = try await handler.perform(barcodeRequest, textRequest)
+
+for try await result in handler.performAll(barcodeRequest, textRequest) {
     // 每个请求完成时立即处理
 }
 ```
 
+杂货场景把 `symbologies` 收成 `[.ean13]`，比默认扫描全部码制更省。
+
 ---
 
-### SequenceRequestHandler
+当前文档首页的处理器是 `ImageRequestHandler`、`TargetedImageRequestHandler`、`VideoProcessor`。`SequenceRequestHandler` 属于旧 API，逐帧相机代码里还会见到。
 
-连续帧 / 视频分析入口，适合与 `AVCaptureSession` 配合使用：
+### TargetedImageRequestHandler
+
+对两张图一起分析，供 `TargetedRequest` 使用，例如配准。源图和目标图可以是 `CGImage`、`CVPixelBuffer`、`CIImage`、`Data`、`CMSampleBuffer` 或 URL。
+
+```swift
+let handler = TargetedImageRequestHandler(
+    source: sourceImage,
+    target: targetImage,
+    orientation: nil
+)
+let alignment = try await handler.perform(TrackHomographicImageRegistrationRequest())
+```
+
+`perform` 等全部请求结束。`performAll` 按完成顺序返回。
+
+### VideoProcessor（iOS 18+）
+
+离线分析本地视频，不用自己拆帧。同一个实例可以挂多个请求，它们看同一批帧。`Cadence.timeInterval` 按时间间隔抽样。`addRequest` 返回 `AsyncSequence`，`startAnalysis()` 之后再读结果。watchOS 27 起也可使用。
+
+```swift
+let videoProcessor = VideoProcessor(videoURL)
+let aesthetics = CalculateImageAestheticsScoresRequest()
+let faces = DetectFaceRectanglesRequest()
+let cadence = VideoProcessor.Cadence.timeInterval(interval)
+
+let scoreStream = try await videoProcessor.addRequest(aesthetics, cadence: cadence)
+let faceStream = try await videoProcessor.addRequest(faces, cadence: cadence)
+videoProcessor.startAnalysis()
+
+for try await observation in scoreStream {
+    if let timeRange = observation.timeRange {
+        print(timeRange.start, observation.overallScore)
+    }
+}
+```
+
+`removeRequest` 停掉后续帧上的某个请求。`cancel()` 停止整个处理器。
+
+### SequenceRequestHandler（旧 API）
+
+实时相机里逐帧调用的旧入口：
 
 ```swift
 let handler = SequenceRequestHandler()
-// 每帧调用一次
 let observations = try await handler.perform(request, on: pixelBuffer)
 ```
 
@@ -458,7 +502,7 @@ for data in doc.text.detectedData {
 - `overallScore: Float` — 综合评分（-1~1，越高越美观）
 - `isUtility: Bool` — 是否为功能性图片（截图、收据、文档等）
 
-**评估维度：** 模糊度、曝光、构图、色彩、主体清晰度
+**评估维度（本场会话）：** 模糊、曝光。总分越高越精良；`isUtility == true` 表示拍得清楚但内容不适合当纪念照片，例如收据、截屏，或技术上合格的木箱照片。
 
 **搭配使用建议：**
 - 有人脸时 → 配合 `DetectFaceCaptureQualityRequest` 一起用
@@ -625,6 +669,23 @@ print("相似度距离：\(distance)") // 接近 0 表示非常相似
 
 ## 物体追踪
 
+### DetectTrajectoriesRequest（iOS 18+）
+
+检测沿抛物线运动的形状，例如抛出的球。它是 `StatefulRequest`，要跨多帧积累点，攒够 `trajectoryLength` 才算出轨迹。返回 `TrajectoryObservation`。
+
+```swift
+let request = DetectTrajectoriesRequest(
+    trajectoryLength: 5,
+    nil,
+    frameAnalysisSpacing: nil
+)
+request.objectMinimumNormalizedRadius = 0.05
+request.objectMaximumNormalizedRadius = 0.2
+let trajectories = try await request.perform(on: frame)
+```
+
+`objectMinimumNormalizedRadius` / `objectMaximumNormalizedRadius` 用外接圆半径限制目标大小。`targetFrameTime` 是希望的处理帧间隔。
+
 ### TrackObjectRequest
 
 跨帧追踪任意物体，需先用其他请求获得初始位置。
@@ -718,42 +779,35 @@ let mask = try result.generateScaledMaskForImage(
 
 ## 光流 & 图像配准
 
-### GenerateOpticalFlowRequest
+### TrackOpticalFlowRequest（iOS 18+）
 
-计算两帧之间每个像素的运动向量，生成光流图。
-
-**返回：** `[OpticalFlowObservation]`
+当前 Swift 名是 `TrackOpticalFlowRequest`。计算上一帧到当前帧每个像素的运动方向，返回 `OpticalFlowObservation`。它是 `StatefulRequest`，用 `frameAnalysisSpacing` 控制帧间隔。
 
 **配置属性：**
-- `computationAccuracy: ComputationAccuracy` — `.low`、`.medium`、`.high`、`.veryHigh`
-- `keepNetworkOutput: Bool` — 是否保留网络原始输出
+- `computationAccuracy: TrackOpticalFlowRequest.ComputationAccuracy`
+- `outputPixelFormatType: OSType`
 
-**OpticalFlowObservation 属性：**
-- `pixelBuffer: CVPixelBuffer` — 双通道浮点图（x/y 方向位移）
-
-**适用场景：** 运动检测、视频防抖、动作分析。
-
----
-
-### TranslationalImageRegistrationRequest
-
-计算两张图像之间的平移偏移量，用于图像稳定和对齐。
-
-**返回：** `[ImageTranslationAlignmentObservation]`
-
-**属性：**
-- `alignmentTransform: CGAffineTransform` — 平移变换矩阵
+```swift
+let request = TrackOpticalFlowRequest(nil, frameAnalysisSpacing: nil)
+let flow = try await request.perform(on: pixelBuffer)
+```
 
 ---
 
-### HomographicImageRegistrationRequest
+### TrackTranslationalImageRegistrationRequest（iOS 18+）
 
-计算两张图像之间的单应性矩阵，支持旋转、缩放、透视变换，精度更高。
+当前 Swift 名。跨时间对齐两张图，求平移用的仿射变换，返回 `ImageTranslationAlignmentObservation`。遵循 `TargetedRequest`，用 `TargetedImageRequestHandler` 传入源图和目标图。
 
-**返回：** `[ImageHomographicAlignmentObservation]`
+---
 
-**属性：**
-- `warpTransform: matrix_float3x3` — 3x3 单应性变换矩阵
+### TrackHomographicImageRegistrationRequest（iOS 18+）
+
+当前 Swift 名。求把两张图对齐所需的透视变换，返回 `ImageHomographicAlignmentObservation`。同样是 `TargetedRequest` + `StatefulRequest`。
+
+```swift
+let handler = TargetedImageRequestHandler(source: previous, target: current, orientation: nil)
+let warp = try await handler.perform(TrackHomographicImageRegistrationRequest())
+```
 
 ---
 
@@ -825,9 +879,9 @@ let results = try await handler.perform(request)
 
 ---
 
-## 坐标系工具
+## 坐标系、协议与可下载资源
 
-Vision 使用归一化坐标（0~1），原点在**左下角**，与 UIKit 方向相反。iOS 18 新增统一转换方法：
+Vision 使用归一化坐标（0~1），原点在**左下角**。SwiftUI 的原点在左上角。iOS 18 用 `toImageCoordinates` 转换，并指定原点在左上角还是左下角：
 
 ```swift
 // 将 Vision 坐标转为 UIKit / SwiftUI 坐标
@@ -836,6 +890,32 @@ let imageCoord = observation.boundingBox.toImageCoordinates(
     origin: .upperLeft  // UIKit 原点
 )
 ```
+
+`NormalizedPoint` 用 `init(x:y:)` 或 `init(imagePoint:in:)` 从像素坐标转来。`verticallyFlipped()` 在上下原点之间翻转。同组还有 `NormalizedRect`、`NormalizedRegion`、`NormalizedCircle`，以及 `CoordinateOrigin`。
+
+### 协议
+
+| 协议 | 作用 |
+|------|------|
+| `VisionRequest` | 所有图像分析请求 |
+| `VisionObservation` | 请求产出的观察结果 |
+| `ImageProcessingRequest` | 针对图像某一区域的请求 |
+| `TargetedRequest` | 同时分析两张图，配合 `TargetedImageRequestHandler` |
+| `StatefulRequest` | 跨时间积累证据，如轨迹、光流、配准 |
+| `PoseProviding` | 提供一组关节点的姿态观察 |
+| `DownloadableAssetsRequest` | 执行前可能要下载模型，iOS 27+。当前遵循者是 `GenerateIterativeSegmentationRequest` |
+
+`DownloadableAssetsRequestStatus`：`.notReady`、`.downloading`、`.ready`、`.error`。`.notReady` 时调用 `downloadAssets()`，或 `downloadAssets(progress:)` 用 `Subprogress` 报告进度。
+
+```swift
+if request.assetStatus == .notReady {
+    try await request.downloadAssets()
+}
+```
+
+### 错误
+
+失败时抛出 `VisionError`。
 
 ---
 
@@ -879,7 +959,7 @@ func processImagesConcurrently(_ images: [CGImage]) async throws {
 
 ### 限制并发数量（重要）
 
-Vision 请求是内存密集型操作，建议**同时最多运行 5 个请求**：
+Vision 请求很吃内存。会话里的图库缩略图示例把 `TaskGroup` 限制为同时 5 个：完成一个再补下一个。5 是这个例子的选择，别的 App 可以按内存情况改上限。
 
 ```swift
 func processImagesWithLimit(_ images: [CGImage], maxConcurrent: Int = 5) async throws {
@@ -981,46 +1061,36 @@ class PhotoLibraryProcessor {
 }
 ```
 
-### 性能对比
+---
 
-| 处理方式 | 100 张图片耗时 | CPU 使用率 | 内存使用 |
-|---------|--------------|-----------|---------|
-| 串行处理 | 45 秒 | 25% | 200 MB |
-| 无限制并发 | 8 秒 | 100% | 1.2 GB ⚠️ |
-| 限制 5 并发 | 12 秒 ✅ | 85% | 450 MB |
+## 从旧 API 迁移
+
+旧 Swift API 没有停用。要用 Swift 6 和 Swift 并发，改用去掉 `VN` 前缀的请求。之后的新功能只加在这套 Swift API 上。
+
+1. 请求和观察结果去掉 `VN` 前缀，例如 `VNDetectBarcodesRequest` → `DetectBarcodesRequest`。
+2. 去掉完成处理程序，`perform` 改成 `async/await`。
+3. 观察结果从 `perform()` 直接返回，不必再把 `results` 解包成可选数组。
+
+只跑一个请求时删掉 `ImageRequestHandler`，写成 `try await request.perform(on: image)`。
+
+为减少内存，配备神经网络引擎的设备上，**部分**请求不再提供 CPU 和 GPU。这些设备上神经网络引擎是性能最高的选项。用 `supportedComputeDevices()` 查看某个请求实际支持哪些计算设备：
+
+```swift
+let request = DetectFaceRectanglesRequest()
+let devices = try request.supportedComputeDevices()
+```
 
 ---
 
 ## 性能建议
 
-### 计算设备支持（iOS 18+）
-
-从 iOS 18 开始，Vision 在配备 Neural Engine 的设备上**仅支持 Neural Engine**，移除了 CPU 和 GPU 选项以减少内存占用。
-
-**检查支持的计算设备：**
-
-```swift
-let request = DetectFaceRectanglesRequest()
-let devices = try request.supportedComputeDevices()
-print(devices) // [.neuralEngine] on iPhone 12+
-```
-
-**设备对照表：**
-
-| 设备 | Neural Engine | iOS 18 行为 |
-|------|--------------|------------|
-| iPhone 12+ | ✅ | 仅支持 Neural Engine |
-| iPhone 11 及更早 | ❌ | 支持 CPU/GPU |
-| iPad Pro (2018+) | ✅ | 仅支持 Neural Engine |
-| Mac (M1+) | ✅ | 仅支持 Neural Engine |
-
 ### 关键性能建议
 
 | 建议 | 说明 |
 |------|------|
-| 并发上限 | 最多同时跑 **5 个** Vision 请求，避免内存压力 |
-| 神经网络引擎 | 在搭载 Neural Engine 的设备上，Vision 会自动选用 ANE，无需手动配置 |
-| 实时场景 | 使用 `SequenceRequestHandler`，避免重复初始化 `ImageRequestHandler` |
+| 并发上限 | 请求很吃内存。会话示例同时最多 5 个，完成一个再启动下一个；上限按 App 调整 |
+| 神经网络引擎 | 有神经网络引擎的设备上，部分请求只走神经网络引擎。用 `supportedComputeDevices()` 确认 |
+| 实时相机 | 旧代码用 `SequenceRequestHandler` 逐帧调用。离线视频用 `VideoProcessor` |
 | 多请求 | 用 `handler.perform(r1, r2)` 参数包语法，比分开调用更高效 |
 | 选择精度 | `.fast` 适合实时预览，`.accurate` 适合最终处理 |
 | 降低分辨率 | 对于检测任务，可以先缩小图像再处理 |
@@ -1036,7 +1106,7 @@ request.recognitionLevel = .fast      // 快速，准确度略低
 request.recognitionLevel = .accurate  // 准确，速度较慢
 
 // 光流计算
-let flowRequest = GenerateOpticalFlowRequest()
+let flowRequest = TrackOpticalFlowRequest(nil, frameAnalysisSpacing: nil)
 flowRequest.computationAccuracy = .low      // 最快
 flowRequest.computationAccuracy = .medium   // 平衡
 flowRequest.computationAccuracy = .high     // 准确
@@ -1054,8 +1124,9 @@ flowRequest.computationAccuracy = .veryHigh // 最准确，最慢
 
 | 版本 | 新增 / 变化 |
 |------|------------|
-| iOS 18 / macOS 15 | 全部 API Swift-native 化（去 VN 前缀），async/await，`CalculateImageAestheticsScoresRequest`，`DetectHumanBodyPoseRequest` 支持 `detectsHands` |
+| iOS 18 / macOS 15 | Swift API（去 VN 前缀），async/await，`CalculateImageAestheticsScoresRequest`，`detectsHands`，`VideoProcessor`，`DetectTrajectoriesRequest`，`TrackOpticalFlowRequest`，`TrackHomographicImageRegistrationRequest`，`TrackTranslationalImageRegistrationRequest` |
 | iOS 26 / macOS 26 | `RecognizeDocumentsRequest`（结构化文档）、`DetectLensSmudgeRequest`（镜头污迹检测） |
+| iOS 27 / watchOS 27 | 轻点分割 `GenerateIterativeSegmentationRequest`、Foundation Models 图像工具、watchOS 上的 Vision。见 [vision-image-understanding.md](vision-image-understanding.md) |
 
 ---
 

@@ -1,293 +1,126 @@
-# Vision 框架图像理解新功能
+# Vision 图像理解 (iOS 27+)
 
-> **适用范围：** iOS 27+ / macOS 27+ / watchOS 27+ / visionOS 27+  
-> **来源：** WWDC 2026 Session 237  
-> **框架：** Vision, Foundation Models
-> 
-> 本文档涵盖 Vision 框架的轻点分割功能、Foundation Models 的图像输入支持、基于图像的工具调用，以及 watchOS 上的 Vision 功能。
+Source: [WWDC 2026 Session 237 — 图像理解方面的新动向](https://developer.apple.com/videos/play/wwdc2026/237/)
 
----
+框架：Vision、Foundation Models。轻点分割与显著性裁剪同时覆盖 watchOS。
 
-## 目录
+## Overview
 
-1. [功能概览](#功能概览)
-2. [轻点分割 (Tap-to-Segment)](#轻点分割-tap-to-segment)
-3. [Foundation Models 图像输入](#foundation-models-图像输入)
-4. [基于图像的工具调用](#基于图像的工具调用)
-5. [watchOS 上的 Vision](#watchos-上的-vision)
-6. [完整示例](#完整示例)
-7. [最佳实践](#最佳实践)
+用 Vision 的轻点分割交互式隔离图像中的任意对象；把图像作为 Foundation Models 的输入做描述类理解；再用带 `ImageReference` 的工具把 Vision 的专用能力（条形码、OCR 等）交给模型。Vision 今年也可在 watchOS 上做显著性裁剪。
 
----
-
-## 功能概览
-
-### 核心特性
-
-| 特性 | 说明 |
-|------|------|
-| **轻点分割** | 通过点击、边界框、套索或涂鸦交互式分割图像中的任意对象 |
-| **LLM 图像理解** | Foundation Models 支持图像作为输入进行分析 |
-| **图像工具调用** | 为 LLM 创建基于图像的工具，结合 Vision 的专业性 |
-| **watchOS 支持** | Vision 框架现在可在 Apple Watch 上使用 |
-| **Vision 内置工具** | 条形码读取和 OCR 工具可直接供 LLM 使用 |
-
-### 使用场景
-
-**轻点分割：**
-- 照片编辑：抠图、背景替换
-- 电商：产品图像处理
-- 医疗影像：区域标注
-- 设计工具：快速选择对象
-
-**LLM 图像理解：**
-- 自动生成图像描述
-- 冰箱照片生成食谱
-- 室内装饰建议
-- 文档内容提取
-
-**图像工具调用：**
-- 植物识别
-- 活动传单信息提取
-- 结合条形码/二维码扫描
-- 精细文本识别（OCR）
-
----
-
-## 轻点分割 (Tap-to-Segment)
-
-### 功能说明
-
-轻点分割 API 允许交互式分割图像中的任意对象，支持多种选择方式：
-
-| 选择方式 | 说明 | 适用场景 |
-|---------|------|---------|
-| **点击 (Tap)** | 在对象上选择一个点 | 简单、边界清晰的对象 |
-| **边界框 (Rectangle)** | 绘制矩形框围住对象 | 复杂对象或多个对象 |
-| **套索 (Lasso)** | 在对象周围绘制闭合曲线 | 不规则形状对象 |
-| **涂鸦 (Scribble)** | 在对象上涂抹 | 同时分割多个对象 |
-
-### 基础使用
+## Quick Example
 
 ```swift
 import Vision
 
-// 1. 创建图像请求处理器
 let handler = ImageRequestHandler(image)
-
-// 2. 创建分割请求（使用种子点）
-let point = CGPoint(x: 0.5, y: 0.5) // 归一化坐标 (0-1)
-let request = GenerateIterativeSegmentationRequest(seed: point)
-
-// 3. 执行请求
+let request = GenerateIterativeSegmentationRequest(
+    seedPoint: NormalizedPoint(x: 0.5, y: 0.5)
+)
 let observation = try await handler.perform(request)
 let mask = observation?.pixelBuffer
 
-// 4. 优化蒙版（添加更多点）
-request.addIncludedPoint(newPoint)
+try request.addIncludedPoint(NormalizedPoint(x: 0.62, y: 0.48))
 let refinedObservation = try await handler.perform(request)
 ```
 
-### 坐标系统
+`NormalizedPoint` 的 x、y 在 0...1，原点在左下角。蒙版是灰度图，标出属于被分割对象的像素。WWDC 幻灯片写成 `GenerateIterativeSegmentationRequest(seed:)`；文档里的初始化方法是 `seedPoint`、`seedBox`、`seedScribbleBuffer`。
+
+## Key APIs
+
+| API | 作用 |
+|-----|------|
+| `GenerateIterativeSegmentationRequest(seedPoint:)` | 用对象内部的种子点生成分割蒙版 |
+| `init(seedBox:)` | 用 `NormalizedRect` 一次围住要分割的区域 |
+| `init(seedScribbleBuffer:)` | 用涂鸦像素缓冲作为种子 |
+| `addIncludedPoint` / `addExcludedPoint` | 把点并入或排除出同一请求，再 `perform` |
+| `DownloadableAssetsRequest` | `assetStatus` 与 `downloadAssets()`，iOS 27+ |
+| `Prompt` + `Attachment` | 把图像附在提示里交给 Foundation Models |
+| `Tool` + `ImageReference` | 工具参数是会话中已有图像的引用，不是整张图 |
+| `BarcodeReaderTool` / `OCRTool` | Vision 提供给 `LanguageModelSession` 的两个工具 |
+| `GenerateObjectnessBasedSaliencyImageRequest` | 找出显著物体边界框，用于小屏幕裁剪 |
+
+交互说明：[Segmenting objects using taps, scribbles or rectangles](https://developer.apple.com/documentation/Vision/segmenting-objects-using-taps-scribbles-or-rectangles)
+
+## 轻点分割
+
+人物分割只能隔离人。`GenerateIterativeSegmentationRequest` 可以分割任意对象：花瓶、棋盘、衣服、地板、杯子和盘子。
+
+| 选择方式 | 会话中的用法 |
+|---------|----------------|
+| 点 | 简单、边界清楚的对象。一个点不够时再加点 |
+| 边界框 | 一次围住多个对象，例如杯子和盘子 |
+| 套索 | 沿不规则轮廓圈选，例如牛角面包 |
+| 涂鸦 | 在多个对象上涂抹，一次分割它们 |
+
+拿到蒙版后对**同一个** `request` 调用 `addIncludedPoint` 或 `addExcludedPoint`，再 `perform` 一次。两点都会抛错：种子是点或涂鸦时，追加点一共不能超过 13 个；种子是框时不能超过 11 个。`qualityLevel` 控制蒙版分辨率。
+
+`GenerateIterativeSegmentationRequest` 遵循 `DownloadableAssetsRequest`。第一次执行前看 `assetStatus`：
 
 ```swift
-// Vision 使用归一化坐标系
-// - 原点：左下角 (0, 0)
-// - 范围：0.0 到 1.0
-// - (0.5, 0.5) = 图像中心
-
-let normalizedPoint = CGPoint(
-    x: pixelX / imageWidth,
-    y: pixelY / imageHeight
-)
-```
-
-### 添加和排除点
-
-```swift
-// 添加点：扩展选区
-request.addIncludedPoint(CGPoint(x: 0.6, y: 0.5))
-
-// 排除点：从选区中移除区域
-request.addExcludedPoint(CGPoint(x: 0.7, y: 0.5))
-```
-
-### 使用边界框
-
-```swift
-let boundingBox = CGRect(x: 0.3, y: 0.3, width: 0.4, height: 0.4)
-let request = GenerateIterativeSegmentationRequest(boundingBox: boundingBox)
-```
-
-### 使用套索
-
-```swift
-// 套索路径：一系列归一化的点
-let lassoPath: [CGPoint] = [
-    CGPoint(x: 0.3, y: 0.4),
-    CGPoint(x: 0.5, y: 0.3),
-    CGPoint(x: 0.7, y: 0.5),
-    // ... 更多点
-]
-
-let request = GenerateIterativeSegmentationRequest(lasso: lassoPath)
-```
-
-### 重要注意事项
-
-```swift
-// 1. 套索笔触宽度
-// 线条宽度应至少为图像总宽度的 1%
-let minimumStrokeWidth = imageWidth * 0.01
-
-// 2. 下载模型（首次使用前）
-let request = GenerateIterativeSegmentationRequest()
-try await request.downloadAssets()
-
-// 3. 检查模型状态
-if request.assetStatus == .ready {
-    // 模型已准备好
+if request.assetStatus == .notReady {
+    try await request.downloadAssets()
 }
 ```
 
----
+状态还有 `.downloading`、`.ready`、`.error`。要进度时用 `downloadAssets(progress:)`，参数是 `Subprogress`。
 
 ## Foundation Models 图像输入
-
-### 功能说明
-
-Foundation Models 框架现在支持将图像作为输入传递给大型语言模型，实现强大的视觉理解能力。
-
-### 基础使用
 
 ```swift
 import FoundationModels
 
-// 1. 创建包含图像的提示
 let prompt = Prompt {
     "Generate a caption for this image"
     Attachment(image)
 }
-
-// 2. 获取模型响应
 let response = try await session.respond(to: prompt)
 let caption = response.content
 ```
 
-### 实际应用示例
+提示构建器里先写指令，再放 `Attachment`。会话里的用法包括：便利贴照片生成议程、图像描述、室内装饰建议、冰箱照片生成食谱。描述类任务适合模型；固定、要快的视觉任务仍用 Vision。
 
-#### 示例 1: 图像描述生成
+| | Vision | Foundation Models |
+|--|--------|-------------------|
+| 能力 | 固定的计算机视觉 API | 按提示做几乎任意描述 |
+| 调优 | 人脸、文本、姿势等专项任务很准 | 通用，专项精度不如对应 Vision API |
+| 速度 | 通常快到可以逐帧分析视频 | 适合单张图像，不适合实时视频 |
 
-```swift
-func generateImageCaption(for image: CGImage) async throws -> String {
-    let prompt = Prompt {
-        "请为这张图片生成一段详细的描述，包括场景、对象和氛围。"
-        Attachment(image)
-    }
-    
-    let response = try await session.respond(to: prompt)
-    return response.content
-}
-```
-
-#### 示例 2: 冰箱食谱生成
-
-```swift
-func generateRecipe(from fridgeImage: CGImage) async throws -> String {
-    let prompt = Prompt {
-        """
-        根据这张冰箱照片中的食材，
-        生成一个简单易做的食谱，包括：
-        1. 菜名
-        2. 所需食材列表
-        3. 烹饪步骤
-        """
-        Attachment(fridgeImage)
-    }
-    
-    let response = try await session.respond(to: prompt)
-    return response.content
-}
-```
-
-#### 示例 3: 室内装饰建议
-
-```swift
-func getDecorAdvice(for roomImage: CGImage) async throws -> String {
-    let prompt = Prompt {
-        """
-        分析这个房间的照片，提供室内装饰建议：
-        - 配色方案
-        - 家具布局
-        - 装饰元素
-        """
-        Attachment(roomImage)
-    }
-    
-    let response = try await session.respond(to: prompt)
-    return response.content
-}
-```
-
-### Vision vs Foundation Models
-
-| 特性 | Vision | Foundation Models |
-|------|--------|-------------------|
-| **能力** | 固定的计算机视觉 API | 通用的图像理解 |
-| **任务类型** | 特定任务（人脸、文本、姿势等）| 几乎任何描述性任务 |
-| **速度** | 非常快，可实时处理视频 | 较慢，适合单张图像 |
-| **准确性** | 特定任务上非常精确 | 通用但不如专用 API 精确 |
-| **灵活性** | 受限于预定义 API | 可通过提示自由定制 |
-
----
+两者可以同时用：把 Vision 包成模型可调用的工具。
 
 ## 基于图像的工具调用
 
-### 工具调用概念
-
-工具调用允许 LLM 访问外部代码来完成特定任务：
-
-```
-用户提示 → LLM 分析 → 调用工具 → 工具执行 → 返回结果 → LLM 生成回复
-```
-
-### 创建图像工具
+模型调用工具时生成参数、运行你的代码，再把返回值写进回复。今年工具参数可以是图像。模型传的是 `ImageReference`，不是像素本身。引用只在生成它的那条记录里有效，用会话的 `history` 取回记录。
 
 ```swift
 import FoundationModels
 
 struct PlantIdentifierTool: Tool {
     @SessionProperty(\.history) var history
-    
+
     @Generable
     struct Arguments {
-        var image: ImageReference  // 图像引用，不是实际图像
+        var image: ImageReference
     }
-    
+
     func call(arguments: Arguments) async throws -> String {
-        // 1. 获取图像引用
         let imageReference = arguments.image
-        
-        // 2. 从历史记录中解析图像
         let transcript = Transcript(history)
         guard let imageAttachment = imageReference.resolve(in: transcript) else {
             throw AppError.imageNotFound
         }
-        
-        // 3. 转换为 PixelBuffer
         let image = try imageAttachment.pixelBuffer()
-        
-        // 4. 执行图像分析
         return classifyPlant(image)
     }
 }
 ```
 
-### 使用 Vision 内置工具
+`resolve(in:)` 得到 `imageAttachment`，再转成 `pixelBuffer` 做分析。
 
-Vision 提供两个开箱即用的工具：
+Vision 自带两个工具，都在 iOS 27+，模拟器里不可用。返回的是字符串或条码结果，由模型写进回复。可以用 `init(name:description:)` 改工具名和说明，方便模型挑选。
 
-#### 1. 条形码读取工具
+- `BarcodeReaderTool`：扫描条形码和二维码，返回解码内容和码制。传单示例里，模型自己能读出地点和日期，读不出二维码里的网址。
+- `OCRTool`：把图中识别到的文字收成一个字符串，适合精细或密集的文本。会话说它支持 30 多种语言。
 
 ```swift
 import FoundationModels
@@ -295,596 +128,44 @@ import Vision
 
 let session = LanguageModelSession(
     model: model,
-    tools: [BarcodeReaderTool()]
+    tools: [BarcodeReaderTool(), OCRTool()]
 )
-
-let response = try await session.respond {
-    "提取这张传单上的所有信息：日期、地点和网站"
+let response = try await session.respond(generating: EventInfo.self) {
+    "Get the date, location, and website from this flyer"
     Attachment(image)
-        .label("flyer")  // 重要：为图像添加标签
+        .label("flyer")
 }
 ```
 
-#### 2. OCR 工具
+希望模型把图像传给工具时，必须给附件加 `.label(_:)`。标签是模型识别「把哪张图交给工具」的方式。
 
-```swift
-let session = LanguageModelSession(
-    model: model,
-    tools: [OCRTool()]
-)
+也可以用 Vision 的其他请求自己写工具。会话提到的方向：图像分割、面部分析、姿势估计、检测、图像分类、轨迹分析、对象跟踪。完整列表见 [WWDC 2024 Session 10163](https://developer.apple.com/videos/play/wwdc2024/10163/)。本仓库的 Swift API 对照在 [vision.md](vision.md)。
 
-let response = try await session.respond {
-    "读取这张收据上的所有文本"
-    Attachment(receiptImage)
-        .label("receipt")
-}
-```
+## watchOS 上的显著性裁剪
 
-### Vision 工具特性
-
-| 工具 | 功能 | 优势 |
-|------|------|------|
-| **BarcodeReaderTool** | 扫描条形码和二维码 | 支持多种条形码格式，准确度高 |
-| **OCRTool** | 文本识别 | 支持 30+ 种语言，可识别密集或精细文本 |
-
-### 自定义 Vision 工具示例
-
-```swift
-struct FaceAnalysisTool: Tool {
-    @SessionProperty(\.history) var history
-    
-    @Generable
-    struct Arguments {
-        var image: ImageReference
-    }
-    
-    func call(arguments: Arguments) async throws -> String {
-        let transcript = Transcript(history)
-        guard let imageAttachment = arguments.image.resolve(in: transcript) else {
-            throw AppError.imageNotFound
-        }
-        
-        let cgImage = try imageAttachment.cgImage()
-        
-        // 使用 Vision 进行人脸分析
-        let request = DetectFaceLandmarksRequest()
-        let handler = ImageRequestHandler(cgImage)
-        let observations = try await handler.perform(request)
-        
-        // 分析结果
-        let faceCount = observations.count
-        let emotions = observations.map { analyzeFaceEmotion($0) }
-        
-        return """
-        检测到 \(faceCount) 张人脸
-        情绪分析：\(emotions.joined(separator: ", "))
-        """
-    }
-}
-```
-
-### 工具调用流程图
-
-```
-用户：这是什么植物？[附带图片]
-  ↓
-LLM：我无法直接识别，调用 PlantIdentifierTool
-  ↓
-工具：解析图像引用 → 转换为 PixelBuffer → Vision 分类 → 返回 "玫瑰"
-  ↓
-LLM：这是一株玫瑰，属于蔷薇科...
-```
-
----
-
-## watchOS 上的 Vision
-
-### 功能说明
-
-Vision 框架现在可在 watchOS 上使用，为手表应用带来强大的图像分析能力。
-
-### 显著性分析（智能裁剪）
+Vision 今年可以跑在 watchOS 上。手表屏幕小，用物体显著性找出主体边界框再裁剪。
 
 ```swift
 import Vision
 
 func generateImageCrop(in image: CGImage) async throws -> NormalizedRect? {
-    // 1. 创建显著性请求
     let request = GenerateObjectnessBasedSaliencyImageRequest()
-    
-    // 2. 执行请求
     let observation = try await request.perform(on: image)
-    
-    // 3. 获取显著对象
     let prominentObjects = observation.salientObjects
-    
-    // 4. 返回最突出的对象边界框
     return prominentObjects.first
 }
 ```
 
-### 完整 watchOS 应用示例
+`salientObjects` 是检测到的对象边界框。会话取最突出的一个（`first`）作为裁剪区域。示例与说明：
 
-```swift
-import SwiftUI
-import Vision
+[Implementing saliency-based image cropping in iOS and watchOS](https://developer.apple.com/documentation/Vision/implementing-saliency-based-image-cropping-in-iOS-and-watchOS)
 
-struct WildlifeWatchApp: View {
-    @State private var selectedAnimal: Animal?
-    @State private var croppedImage: CGImage?
-    
-    var body: some View {
-        NavigationView {
-            List(animals) { animal in
-                Button(action: {
-                    selectedAnimal = animal
-                    cropImage(animal.photo)
-                }) {
-                    Text(animal.name)
-                }
-            }
-            .navigationTitle("本地野生动物")
-        }
-        .sheet(item: $selectedAnimal) { animal in
-            if let croppedImage = croppedImage {
-                Image(croppedImage, scale: 1.0, label: Text(animal.name))
-                    .resizable()
-                    .scaledToFit()
-            }
-        }
-    }
-    
-    func cropImage(_ image: CGImage) {
-        Task {
-            do {
-                // 使用显著性分析裁剪图像
-                let request = GenerateObjectnessBasedSaliencyImageRequest()
-                let observation = try await request.perform(on: image)
-                
-                if let boundingBox = observation.salientObjects.first {
-                    // 裁剪到显著区域
-                    croppedImage = cropToRect(image, rect: boundingBox)
-                }
-            } catch {
-                print("裁剪失败: \(error)")
-            }
-        }
-    }
-    
-    func cropToRect(_ image: CGImage, rect: CGRect) -> CGImage? {
-        // 转换归一化坐标到像素坐标
-        let pixelRect = CGRect(
-            x: rect.origin.x * CGFloat(image.width),
-            y: rect.origin.y * CGFloat(image.height),
-            width: rect.size.width * CGFloat(image.width),
-            height: rect.size.height * CGFloat(image.height)
-        )
-        
-        return image.cropping(to: pixelRect)
-    }
-}
-```
+## ⚠️ Important Notes
 
-### watchOS 上的 Vision 功能
-
-Vision 在 watchOS 上支持 30+ 种图像分析类型：
-
-- ✅ 显著性分析
-- ✅ 人脸检测和标志识别
-- ✅ 条形码扫描
-- ✅ 文本识别 (OCR)
-- ✅ 图像分类
-- ✅ 对象检测
-- ✅ 姿势估计
-
----
-
-## 完整示例
-
-### 示例 1: 轻点分割照片编辑器
-
-```swift
-import SwiftUI
-import Vision
-
-class SegmentationViewModel: ObservableObject {
-    @Published var segmentedMask: CVPixelBuffer?
-    @Published var isProcessing = false
-    
-    func segmentObject(in image: CGImage, at point: CGPoint) async {
-        await MainActor.run { isProcessing = true }
-        
-        do {
-            let handler = ImageRequestHandler(image)
-            let request = GenerateIterativeSegmentationRequest(seed: point)
-            
-            let observation = try await handler.perform(request)
-            
-            await MainActor.run {
-                self.segmentedMask = observation?.pixelBuffer
-                self.isProcessing = false
-            }
-        } catch {
-            print("分割失败: \(error)")
-            await MainActor.run { isProcessing = false }
-        }
-    }
-    
-    func refineSegmentation(includingPoint: CGPoint) async {
-        guard let request = currentRequest else { return }
-        
-        request.addIncludedPoint(includingPoint)
-        
-        do {
-            let observation = try await handler.perform(request)
-            await MainActor.run {
-                self.segmentedMask = observation?.pixelBuffer
-            }
-        } catch {
-            print("优化失败: \(error)")
-        }
-    }
-}
-
-struct SegmentationEditorView: View {
-    @StateObject private var viewModel = SegmentationViewModel()
-    let image: CGImage
-    
-    var body: some View {
-        ZStack {
-            Image(image, scale: 1.0, label: Text("原始图像"))
-                .resizable()
-                .scaledToFit()
-                .gesture(
-                    DragGesture(minimumDistance: 0)
-                        .onEnded { value in
-                            let normalizedPoint = normalizePoint(value.location)
-                            Task {
-                                await viewModel.segmentObject(
-                                    in: image,
-                                    at: normalizedPoint
-                                )
-                            }
-                        }
-                )
-            
-            if let mask = viewModel.segmentedMask {
-                MaskOverlayView(mask: mask)
-            }
-            
-            if viewModel.isProcessing {
-                ProgressView()
-            }
-        }
-    }
-    
-    func normalizePoint(_ point: CGPoint) -> CGPoint {
-        CGPoint(
-            x: point.x / CGFloat(image.width),
-            y: point.y / CGFloat(image.height)
-        )
-    }
-}
-```
-
-### 示例 2: 智能文档扫描器
-
-```swift
-import FoundationModels
-import Vision
-
-class DocumentScanner {
-    let session: LanguageModelSession
-    
-    init() {
-        // 配置带 Vision 工具的会话
-        session = LanguageModelSession(
-            model: .default,
-            tools: [BarcodeReaderTool(), OCRTool()]
-        )
-    }
-    
-    func extractInformation(from image: CGImage) async throws -> DocumentInfo {
-        let response = try await session.respond(generating: DocumentInfo.self) {
-            """
-            从这个文档中提取所有信息：
-            - 文本内容
-            - 条形码/二维码
-            - 日期
-            - 金额
-            """
-            Attachment(image)
-                .label("document")
-        }
-        
-        return response
-    }
-}
-
-struct DocumentInfo: Codable {
-    let textContent: String
-    let barcodes: [String]
-    let dates: [String]
-    let amounts: [Double]
-}
-```
-
-### 示例 3: 植物识别应用
-
-```swift
-struct PlantRecognitionApp {
-    let session: LanguageModelSession
-    
-    init() {
-        session = LanguageModelSession(
-            model: .default,
-            tools: [PlantIdentifierTool()]
-        )
-    }
-    
-    func identifyPlant(_ image: CGImage) async throws -> PlantInfo {
-        let response = try await session.respond(generating: PlantInfo.self) {
-            """
-            识别这种植物并提供以下信息：
-            - 植物名称（中文和学名）
-            - 科属
-            - 生长环境
-            - 养护要点
-            """
-            Attachment(image)
-                .label("plant")
-        }
-        
-        return response
-    }
-}
-
-struct PlantInfo: Codable {
-    let chineseName: String
-    let scientificName: String
-    let family: String
-    let habitat: String
-    let careInstructions: String
-}
-```
-
----
-
-## 最佳实践
-
-### ✅ 推荐做法
-
-1. **轻点分割**
-   ```swift
-   // 使用合适的笔触宽度
-   let strokeWidth = max(imageWidth * 0.01, 5.0)
-   
-   // 提前下载模型
-   try await request.downloadAssets()
-   
-   // 检查模型状态
-   guard request.assetStatus == .ready else {
-       // 提示用户下载模型
-       return
-   }
-   ```
-
-2. **Foundation Models 图像输入**
-   ```swift
-   // 使用清晰的提示
-   let prompt = Prompt {
-       "请详细描述这张图片，包括..."  // 明确要求
-       Attachment(image)
-   }
-   
-   // 压缩大图像以提高性能
-   let compressedImage = image.resized(maxDimension: 1024)
-   ```
-
-3. **图像工具调用**
-   ```swift
-   // 为图像添加描述性标签
-   Attachment(image)
-       .label("product-photo")  // 帮助 LLM 理解上下文
-   
-   // 组合多个工具
-   let session = LanguageModelSession(
-       model: model,
-       tools: [BarcodeReaderTool(), OCRTool(), CustomTool()]
-   )
-   ```
-
-4. **watchOS 应用**
-   ```swift
-   // 使用显著性分析优化小屏幕显示
-   let request = GenerateObjectnessBasedSaliencyImageRequest()
-   let crop = try await generateImageCrop(in: image)
-   
-   // 缓存裁剪结果
-   ImageCache.shared.store(crop, forKey: imageID)
-   ```
-
-### ⚠️ 注意事项
-
-1. **坐标系统**
-   ```swift
-   // ❌ 错误：使用像素坐标
-   let point = CGPoint(x: 100, y: 200)
-   
-   // ✅ 正确：归一化坐标
-   let point = CGPoint(
-       x: 100.0 / imageWidth,
-       y: 200.0 / imageHeight
-   )
-   ```
-
-2. **模型下载**
-   ```swift
-   // 首次使用前检查并下载
-   if request.assetStatus != .ready {
-       try await request.downloadAssets()
-   }
-   ```
-
-3. **性能考虑**
-   ```swift
-   // LLM 图像分析较慢，不适合实时处理
-   // 使用 Vision 进行实时视频分析
-   
-   // ❌ 错误：对视频帧使用 LLM
-   for frame in videoFrames {
-       await llm.analyze(frame)  // 太慢
-   }
-   
-   // ✅ 正确：使用 Vision
-   for frame in videoFrames {
-       try await visionRequest.perform(on: frame)  // 快速
-   }
-   ```
-
-4. **图像引用解析**
-   ```swift
-   // 图像引用仅在其创建的记录上下文中有效
-   func call(arguments: Arguments) async throws -> String {
-       let transcript = Transcript(history)
-       guard let attachment = arguments.image.resolve(in: transcript) else {
-           throw AppError.imageNotFound
-       }
-       // 使用 attachment...
-   }
-   ```
-
-### 🚫 避免的做法
-
-1. **不要跳过模型检查**
-   ```swift
-   // ❌ 错误
-   let request = GenerateIterativeSegmentationRequest(seed: point)
-   try await handler.perform(request)  // 可能失败，模型未下载
-   
-   // ✅ 正确
-   if request.assetStatus != .ready {
-       try await request.downloadAssets()
-   }
-   try await handler.perform(request)
-   ```
-
-2. **不要使用过细的套索笔触**
-   ```swift
-   // ❌ 错误：笔触太细
-   let strokeWidth = 1.0
-   
-   // ✅ 正确：至少 1% 图像宽度
-   let strokeWidth = max(imageWidth * 0.01, 5.0)
-   ```
-
-3. **不要混淆用途**
-   ```swift
-   // ❌ 使用 LLM 做 Vision 擅长的事
-   await llm.analyze("检测这张图中的人脸")
-   
-   // ✅ 使用 Vision
-   let request = DetectFaceRectanglesRequest()
-   try await handler.perform(request)
-   ```
-
----
-
-## 相关 API 参考
-
-### Vision 轻点分割
-
-```swift
-// 创建分割请求
-GenerateIterativeSegmentationRequest(seed: CGPoint)
-GenerateIterativeSegmentationRequest(boundingBox: CGRect)
-GenerateIterativeSegmentationRequest(lasso: [CGPoint])
-
-// 优化蒙版
-func addIncludedPoint(_ point: CGPoint)
-func addExcludedPoint(_ point: CGPoint)
-
-// 模型管理
-func downloadAssets() async throws
-var assetStatus: AssetStatus { get }
-```
-
-### Foundation Models 图像支持
-
-```swift
-// 提示构建器
-Prompt {
-    "文本提示"
-    Attachment(CGImage)
-    Attachment(UIImage)
-}
-
-// 图像附件
-Attachment(image)
-    .label("description")
-
-// 会话响应
-session.respond(to: Prompt) async throws
-session.respond(generating: Codable.Type) async throws
-```
-
-### 图像工具
-
-```swift
-// 工具协议
-protocol Tool {
-    associatedtype Arguments
-    func call(arguments: Arguments) async throws -> String
-}
-
-// 图像引用
-struct ImageReference {
-    func resolve(in transcript: Transcript) -> ImageAttachment?
-}
-
-// Vision 内置工具
-BarcodeReaderTool()
-OCRTool()
-```
-
-### watchOS Vision
-
-```swift
-// 显著性分析
-GenerateObjectnessBasedSaliencyImageRequest()
-struct SaliencyObservation {
-    var salientObjects: [NormalizedRect]
-}
-```
-
----
-
-## 相关 WWDC Sessions
-
-- **WWDC 2026 Session 237**: 图像理解方面的新动向
-- **WWDC 2026 Session 241**: Foundation Models 框架的新功能
-- **WWDC 2025 Session 301**: 深入了解 Foundation Models 框架
-- **WWDC 2024 Session 10163**: 探索 Vision 框架中的 Swift 增强功能
-
----
-
-## 额外资源
-
-- [Apple Developer Documentation: Vision](https://developer.apple.com/documentation/vision)
-- [Segmenting objects using taps, scribbles or rectangles](https://developer.apple.com/documentation/Vision/segmenting-objects-using-taps-scribbles-or-rectangles)
-- [Implementing saliency-based image cropping in iOS and watchOS](https://developer.apple.com/documentation/Vision/implementing-saliency-based-image-cropping-in-iOS-and-watchOS)
-- [Foundation Models Framework](https://developer.apple.com/documentation/foundationmodels)
-
----
-
-## 总结
-
-Vision 框架和 Foundation Models 的图像理解新功能为开发者提供了强大的工具：
-
-1. **轻点分割**：交互式分割任意对象，支持多种选择方式
-2. **LLM 图像理解**：使用大型语言模型分析图像，实现通用视觉理解
-3. **图像工具调用**：结合 Vision 的专业性和 LLM 的灵活性
-4. **watchOS 支持**：在手表上使用 Vision 进行图像分析
-5. **内置工具**：条形码读取和 OCR 工具开箱即用
-
-**推荐：** 根据任务选择合适的工具 - Vision 用于快速和专业任务，Foundation Models 用于通用和描述性任务，工具调用用于结合两者的优势。
+- 坐标是归一化的，原点在**左下角**，不要传入像素坐标。
+- 套索笔触要够粗。细线效果差；线宽至少为图像宽度的 1%。
+- 分割请求遵循 `DownloadableAssetsRequest`。`assetStatus == .notReady` 时先 `downloadAssets()`，等到 `.ready` 再 `perform`。追加点超过 13（种子框是 11）会抛错。
+- `ImageReference` 不能跨记录使用。`call` 里用 `@SessionProperty(\.history)` 取出记录，再 `resolve(in:)`。解析失败就不要继续分析。
+- 图像工具调用依赖附件标签。没有 `.label(_:)` 时，模型无法把对应图像交给工具。
+- 实时视频帧用 Vision。Foundation Models 的图像理解留给单张、描述性任务。
+- 条形码和密集小字是模型的弱项，优先交给 Vision 工具，而不是只靠图像提示。
